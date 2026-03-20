@@ -43,7 +43,12 @@ public class ApiHandler extends AbstractRequestHandler {
         // Students implement group retrieval and JSON formatting
         
         response.setCode(ReplyCode.OK);
+        response.setHeader("Content-Type", "application/json");
         response.setText("{\"message\":\"Students implement GET\"}");
+        response.setHeader("Content-Length", Integer.toString(response.text.length()));
+        
+        if (request.getHeaderValue("Connection").contentEquals("keep-alive"))
+            response.setHeader("Connection", "keep-alive");
     }
 
     /**

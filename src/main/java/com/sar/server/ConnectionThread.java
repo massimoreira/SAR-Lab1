@@ -13,8 +13,10 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.PrintStream;
+import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.net.SocketTimeoutException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Locale;
@@ -50,26 +52,27 @@ public class ConnectionThread extends Thread  {
      * @return Request object containing the request received from the client, or null in case of error
      * @throws java.io.IOException 
      */
-    public Request GetRequest (BufferedReader TextReader) throws IOException {
+    public Request GetRequest (BufferedReader TextReader) throws IOException, SocketTimeoutException {
         // Get first line
         String request = TextReader.readLine( );  	// Reads the first line
         if (request == null) {
             logger.debug("Invalid request Connection closed");
             return null;
         }
-        logger.info("Request: ", request);
+        logger.info("Request: " + request);
         StringTokenizer st= new StringTokenizer(request);
         if (st.countTokens() != 3) {
            logger.debug("Invalid request received ", request);
            return null;  // Invalid request
         } 
-         //create an object to store the http request
-         Request req= new Request (client.getInetAddress ().getHostAddress (), client.getPort (), ServerSock.getLocalPort ());  
-         req.method= st.nextToken();    // Store HTTP method
-         req.urlText= st.nextToken();    // Store URL
-         req.version= st.nextToken();  // Store HTTP version
+        //create an object to store the http request
+        Request req= new Request (client.getInetAddress ().getHostAddress (), client.getPort (), ServerSock.getLocalPort ());  
+        req.method= st.nextToken();    // Store HTTP method
+        req.urlText= st.nextToken();    // Store URL
+        req.version= st.nextToken();  // Store HTTP version
      
         // read the remaining headers in to the headers property of the request object   
+        req.headers.readHeaders(TextReader);
         
         // check if the Content-Length size is different than zero. If true read the body of the request (that can contain POST data)
         int clength= 0;
@@ -109,7 +112,7 @@ public class ConnectionThread extends Thread  {
     public void run( ) {
 
         Response res= null;   // HTTP response object
-        Request req = null;   //HTTP request object
+        Request req = null;   // HTTP request object
         PrintStream TextPrinter= null;
 
         try {
@@ -124,12 +127,39 @@ public class ConnectionThread extends Thread  {
             req= GetRequest(TextReader); //reads the input http request if everything was read ok it returns true
             //Create response object. 
             res= new Response(HTTPServer.ServerName);
-            // Let the controler (HttpContrller) handle the request and fill the response.
-            controller.handleRequest(req, res);
-            // Send response
-            res.send_Answer(TextPrinter);
 
-        } catch (Exception e) {
+            // See if the connection is non-SSL
+            if (ServerSock.getLocalPort() == HTTPServer.getPortHTTP()) {
+                // Set error code
+                res.setError(307, req.version);
+                // Set a Location header with the correct URL
+                res.setHeader("Location", "https://" + InetAddress.getLocalHost().getHostAddress() 
+                + ":" + Integer.toString(HTTPServer.getPortHTTPS()) + req.urlText);
+                // Send response
+                res.send_Answer(TextPrinter);
+            }
+            else {
+                // Let the controler (HttpContrller) handle the request and fill the response.
+                controller.handleRequest(req, res);
+                // Send response
+                res.send_Answer(TextPrinter);
+                // If the header Connection: keep-alive was sent
+                //int counter = 0;
+                client.setSoTimeout(1000);
+                while (req.getHeaderValue("Connection").contentEquals("keep-alive")) {
+                    req= GetRequest(TextReader);
+                    if (req == null)
+                        break;
+                    res= new Response(HTTPServer.ServerName);
+                    controller.handleRequest(req, res);
+                    res.send_Answer(TextPrinter);
+                }
+            }
+
+        } catch (SocketTimeoutException e) {
+                logger.info("Read timed out.");
+            }
+        catch (Exception e) {
             logger.error("Error processing request", e);
             if (res != null) {
                 res.setError(ReplyCode.BADREQ, req != null ? req.version : "HTTP/1.1");

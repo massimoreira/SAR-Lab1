@@ -25,8 +25,8 @@ public class StaticFileHandler extends AbstractRequestHandler {
     private static final Map<String, String> MIME_TYPES = new HashMap<>();
     
     static {
-        MIME_TYPES.put(".html", "text/html");
-        MIME_TYPES.put(".htm", "text/html");
+        MIME_TYPES.put(".html", "text/html; charset=UTF-8");
+        MIME_TYPES.put(".htm", "text/html; charset=UTF-8");
         MIME_TYPES.put(".css", "text/css");
         MIME_TYPES.put(".js", "text/javascript");
         MIME_TYPES.put(".jpg", "image/jpeg");
@@ -50,7 +50,11 @@ public class StaticFileHandler extends AbstractRequestHandler {
                 response.setCode(ReplyCode.OK);
                 response.setVersion(request.version);
                 response.setFile(file);
+
                 // set file headers
+                response.setFileHeaders(file, getMimeType(path));
+                if (request.getHeaderValue("Connection").contentEquals("keep-alive"))
+                    response.setHeader("Connection", "keep-alive");
                 logger.info("Serving file: {}", fullPath);
             } else {
                 logger.warn("File not found: {}. Returning 404 error.", fullPath);

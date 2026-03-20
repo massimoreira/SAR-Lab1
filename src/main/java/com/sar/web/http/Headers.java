@@ -54,7 +54,17 @@ public class Headers {
      * @param reader   reader object
      */
     public void readHeaders(BufferedReader reader) throws IOException {
-     
+        String line = reader.readLine();
+        while(line.length() > 1) {
+            int index = line.indexOf(':');
+            if (index < 0)
+                throw new IOException("Error on Header format");
+            String name = line.substring(0, index);
+            String contents = line.substring(index+2);
+            setHeader(name, contents);
+
+            line = reader.readLine();
+        }
     }
 
     public void writeHeaders(PrintStream writer) {

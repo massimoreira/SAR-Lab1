@@ -87,10 +87,11 @@ public class Response {
      * @param mime_enc */
     public void setFileHeaders(File file, String contentType) {
         this.file = file;
-        this.file = null;
+        //this.file = null;
         // header lines not set in 'Headers' object!
-        // ...
-        logger.debug("Header fields not defined in HTTPAnswer.set_file");
+        setHeader("Content-Type", contentType);
+        setHeader("Content-Length", Long.toString(file.length()));    
+        //logger.debug("Header fields not defined in HTTPAnswer.set_file");
     }
 
     /** Sets the headers needed in a reply with a locally generated HTML string
@@ -101,8 +102,9 @@ public class Response {
         this.text = text;
         this.file = null;
         // header lines not set in 'Headers' object!
-        // ...
-        logger.debug("Header fields not defined in HTTPAnswer.set_text");
+        setHeader("Content-Type", "text/html; charset=UTF-8");
+        setHeader("Content-Length", Integer.toString(text.length()));
+        //logger.debug("Header fields not defined in HTTPAnswer.set_text");
     }
 
         /** Prepares an HTTP answer with an error code
