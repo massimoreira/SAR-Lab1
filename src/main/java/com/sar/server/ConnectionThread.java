@@ -101,6 +101,8 @@ public class ConnectionThread extends Thread  {
                 return null;
             }
             req.text= str;
+            req.readPostParameters(str);
+
             logger.debug("Contents('"+req.text+"')\n");
         }
 
@@ -145,7 +147,7 @@ public class ConnectionThread extends Thread  {
                 res.send_Answer(TextPrinter);
                 // If the header Connection: keep-alive was sent
                 //int counter = 0;
-                client.setSoTimeout(1000);
+                client.setSoTimeout(ReplyCode.TMPREDIRECT);
                 while (req.getHeaderValue("Connection").contentEquals("keep-alive")) {
                     req= GetRequest(TextReader);
                     if (req == null)
@@ -158,7 +160,7 @@ public class ConnectionThread extends Thread  {
 
         } catch (SocketTimeoutException e) {
                 logger.info("Read timed out.");
-            }
+        }
         catch (Exception e) {
             logger.error("Error processing request", e);
             if (res != null) {

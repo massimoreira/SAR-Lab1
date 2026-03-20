@@ -1,8 +1,12 @@
 package com.sar.web.handler;
 
 import com.sar.service.EventBroadcaster;
+import com.sar.web.http.ReplyCode;
 import com.sar.web.http.Request;
 import com.sar.web.http.Response;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * EventHandler manages Server-Sent Events (SSE) connections for real-time updates.
@@ -43,6 +47,7 @@ import com.sar.web.http.Response;
 public class EventHandler extends AbstractRequestHandler {
 
     private final EventBroadcaster eventBroadcaster;
+    private static final Logger logger = LoggerFactory.getLogger(EventHandler.class);
 
     /**
      * Constructor with dependency injection.
@@ -76,5 +81,12 @@ public class EventHandler extends AbstractRequestHandler {
     @Override
     protected void handlePost(Request request, Response response) {
         // Implementation needed (usually returns an error)
+    }
+
+    @Override
+    protected void handleDelete(Request request, Response response) {
+        // Static files don't handle POST requests
+        logger.error("EventHandler does not handle DELETE requests.");
+        response.setError(ReplyCode.NOTIMPLEMENTED, request.version);
     }
 }

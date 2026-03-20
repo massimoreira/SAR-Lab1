@@ -24,6 +24,7 @@ public class Request {
     public Headers headers; // stores the HTTP headers of the request
     public Properties cookies; //stores cookies received in the Cookie Headers
     private Properties postParameters; //stores POST parameters if request is a POST
+    private Properties deleteParamenets;
     public String text;     //store possible contents in an HTTP request (for example POST contents)
     public String version;
     public String method;
@@ -41,6 +42,7 @@ public class Request {
         this.headers = new Headers();
         this.cookies = new Properties();
         this.postParameters = new Properties();
+        this.deleteParamenets = new Properties();
     }
 
     //Method to getClienAddress
@@ -92,6 +94,29 @@ public class Request {
     
     public Properties getPostParameters() {
         return postParameters;
+    }
+
+    public void setPostParameter(String paramName, String paramVal) {
+        postParameters.put(paramName, paramVal);
+    }
+
+    public void readPostParameters (String line) {
+        for (String parameter : line.split("&")) {
+            String [] parts = parameter.split("=");
+            String name = parts[0];
+            String value = parts[1];
+            setPostParameter(name, value);
+        }
+    }
+
+    public void readDeleteParameters () {
+        String info = this.urlText.substring(this.urlText.indexOf('?')+1);
+        String[] parameter = info.split("=");
+        deleteParamenets.put(parameter[0], parameter[1]);
+    }
+
+    public String getDeleteParameter (String name) {
+        return (String) deleteParamenets.get(name);
     }
     
     /**

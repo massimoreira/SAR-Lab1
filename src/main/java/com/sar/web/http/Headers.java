@@ -50,7 +50,7 @@ public class Headers {
     }
 
     /**
-     * Reads Headers from request BufferedReader (to complete)
+     * Reads Headers from request BufferedReader
      * @param reader   reader object
      */
     public void readHeaders(BufferedReader reader) throws IOException {
@@ -58,7 +58,7 @@ public class Headers {
         while(line.length() > 1) {
             int index = line.indexOf(':');
             if (index < 0)
-                throw new IOException("Error on Header format");
+                return;
             String name = line.substring(0, index);
             String contents = line.substring(index+2);
             setHeader(name, contents);

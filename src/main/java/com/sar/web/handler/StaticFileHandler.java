@@ -74,6 +74,13 @@ public class StaticFileHandler extends AbstractRequestHandler {
         response.setError(ReplyCode.NOTIMPLEMENTED, request.version);
     }
 
+    @Override
+    protected void handleDelete(Request request, Response response) {
+        // Static files don't handle POST requests
+        logger.error("StaticFileHandler does not handle DELETE requests.");
+        response.setError(ReplyCode.NOTIMPLEMENTED, request.version);
+    }
+
     private String getMimeType(String path) {
         int dotIndex = path.lastIndexOf('.');
         if (dotIndex > 0) {
