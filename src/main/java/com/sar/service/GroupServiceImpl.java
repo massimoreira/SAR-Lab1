@@ -38,8 +38,11 @@ public class GroupServiceImpl implements GroupService {
     private static final Logger logger = LoggerFactory.getLogger(GroupServiceImpl.class);
     private final GroupRepository repository;
 
-    public GroupServiceImpl(GroupRepository repository) {
+    private final EventBroadcaster eventBroadcaster;
+
+    public GroupServiceImpl(GroupRepository repository, EventBroadcaster broadcaster) {
         this.repository = repository;
+        this.eventBroadcaster = broadcaster;
     }
 
     @Override
@@ -93,14 +96,10 @@ public class GroupServiceImpl implements GroupService {
             repository.save(group);
             logger.info("Saved group: {}", groupNumber);
 
-            // SSE Integration Point:
-            // After successfully saving the group, broadcast an event to all connected SSE clients.
-            // This allows real-time updates in the browser without page refresh.
-            // 
-            // Example implementation:
-            // String eventType = isNewGroup ? "group.created" : "group.updated";
-            // String eventData = formatGroupAsJson(group, eventType);
-            // eventBroadcaster.broadcast(eventData);
+            String eventType = isNewGroup ? "group.created" : "group.updated";
+            String eventData = "{\"type\":\"" + eventType + "\",\"groupNumber\":\"" + groupNumber + "\"}";
+            eventBroadcaster.broadcast(eventData);
+
             
         } catch (Exception e) {
             logger.error("Error saving group: " + groupNumber, e);
@@ -114,10 +113,9 @@ public class GroupServiceImpl implements GroupService {
             repository.delete(groupNumber);
             logger.info("Deleted group: {}", groupNumber);
             
-            // SSE Integration Point:
-            // After successfully deleting the group, broadcast a deletion event.
-            // Example: eventBroadcaster.broadcast("{\"type\":\"group.deleted\",\"groupNumber\":\"" + groupNumber + "\"}");
-            
+            String eventData = "{\"type\":\"group.deleted\",\"groupNumber\":\"" + groupNumber + "\"}";
+            eventBroadcaster.broadcast(eventData);
+
         } catch (Exception e) {
             logger.error("Error deleting group: " + groupNumber, e);
             throw new RuntimeException("Failed to delete group", e);

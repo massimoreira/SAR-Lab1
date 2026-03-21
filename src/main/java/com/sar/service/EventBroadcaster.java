@@ -1,6 +1,8 @@
 package com.sar.service;
 
+import java.io.IOException;
 import java.io.OutputStream;
+import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 
@@ -37,13 +39,13 @@ public class EventBroadcaster {
     private final List<OutputStream> clients = new CopyOnWriteArrayList<>();
 
     /**
-     * Registers a new SSE client connection.
+     * Registers a new SSE client connection, and sends a hello message
      * The provided OutputStream should remain open for the duration of the SSE connection.
      * 
      * @param clientStream the output stream to send events to
      */
-    public void registerClient(OutputStream clientStream) {
-        // Implementation needed
+    public void registerClient(OutputStream clientStream){
+        clients.add(clientStream);
     }
 
     /**
@@ -52,7 +54,7 @@ public class EventBroadcaster {
      * @param clientStream the output stream to remove
      */
     public void removeClient(OutputStream clientStream) {
-        // Implementation needed
+        clients.remove(clientStream);
     }
 
     /**
@@ -64,7 +66,19 @@ public class EventBroadcaster {
      * @param eventData the data to broadcast (will be formatted as SSE event)
      */
     public void broadcast(String eventData) {
-        // Implementation needed
+        String message = "data: " + eventData + "\n\n";
+        Iterator<OutputStream> iterator = clients.iterator();
+        OutputStream out;
+        while(iterator.hasNext())  {
+            out = iterator.next();
+            try {
+                out.write(message.getBytes());
+                out.flush();
+            }
+            catch (IOException e) {
+                clients.remove(out);
+            }
+        }
     }
 
     /**

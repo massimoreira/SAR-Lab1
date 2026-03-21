@@ -1,9 +1,14 @@
 package com.sar.web.http;
 
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 import java.util.Properties;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 
 
 /**
@@ -101,17 +106,21 @@ public class Request {
     }
 
     public void readPostParameters (String line) {
-        for (String parameter : line.split("&")) {
-            String [] parts = parameter.split("=");
-            String name = parts[0];
-            String value = parts[1];
-            setPostParameter(name, value);
-        }
+        try {
+            for (String parameter : line.split("&")) {
+                String [] parts = parameter.split("=", 2);
+                String name = URLDecoder.decode(parts[0], StandardCharsets.UTF_8.name());
+                String value = parts.length > 1 ? URLDecoder.decode(parts[1], StandardCharsets.UTF_8.name()) : "";
+                setPostParameter(name, value);
+            }
+        } catch (Exception e) {
+                logger.error("Error using URLDecoder");
+            }
     }
 
     public void readDeleteParameters () {
         String info = this.urlText.substring(this.urlText.indexOf('?')+1);
-        String[] parameter = info.split("=");
+        String[] parameter = info.split("=", 2);
         deleteParamenets.put(parameter[0], parameter[1]);
     }
 

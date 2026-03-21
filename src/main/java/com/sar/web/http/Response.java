@@ -6,6 +6,7 @@ import org.slf4j.LoggerFactory;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.io.PrintStream;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
@@ -29,15 +30,18 @@ public class Response {
     public String text; // buffer with reply contents for dynamic API responses or server generated HTML code
     public File file;   // file used if text == null, for responses that contain a file  
     private final String serverName;
+
+    private final OutputStream out;
     /**
      * Creates a new instance of HTTPAnswer
       * @param server_name
      */
-    public Response(String server_name) {
+    public Response(String server_name, OutputStream out) {
         this.code = new ReplyCode(); // code constains an instance of the HTTPReplyCode Class thar contains HTTP code values and an HTTP version field.
         this.headers = new Headers ();  // Headers object to store response HTTP headers  
         this.setCookie = new ArrayList<>(); // Array List of Strings to contain the Strings that make up the several values of the Set_Cookie Header. 
         this.serverName = server_name;
+        this.out = out;
         /**
          * define Server header field name
          */
@@ -184,12 +188,13 @@ public class Response {
         TextPrinter.print("\r\n");
         //write content if present
         if (text != null) {
-                TextPrinter.print(text);
+            TextPrinter.print(text);
         } else if (file != null) {
             writeFile(TextPrinter);
-            } else if ((code.getCode() != ReplyCode.NOTMODIFIED)&&(code.getCode() != ReplyCode.TMPREDIRECT)) {
+        }/* else if ((code.getCode() != ReplyCode.NOTMODIFIED)&&(code.getCode() != ReplyCode.TMPREDIRECT)) {
                 logger.error("Internal server error sending answer\n");
             }
+        */
     
         TextPrinter.flush();
     }
@@ -206,6 +211,11 @@ public class Response {
         catch (IOException e ) {
             System.out.println( "I/O error opeening FileInputStream " + e );
         }
+    }
+
+
+    public OutputStream getOutputStream () {
+        return this.out;
     }
     
 }

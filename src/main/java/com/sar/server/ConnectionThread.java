@@ -73,6 +73,9 @@ public class ConnectionThread extends Thread  {
      
         // read the remaining headers in to the headers property of the request object   
         req.headers.readHeaders(TextReader);
+
+        // check for cookies
+        req.parseCookies();
         
         // check if the Content-Length size is different than zero. If true read the body of the request (that can contain POST data)
         int clength= 0;
@@ -100,10 +103,12 @@ public class ConnectionThread extends Thread  {
                 logger.info("Read request with {}} data bytes and Content-Length = {}} bytes\n",cnt, clength);
                 return null;
             }
-            req.text= str;
-            req.readPostParameters(str);
+            if (req.method.contentEquals("POST"))
+                req.readPostParameters(str);
+            else
+                req.text= str;
 
-            logger.debug("Contents('"+req.text+"')\n");
+            logger.debug("Contents('"+str+"')\n");
         }
 
         return req;
@@ -127,13 +132,15 @@ public class ConnectionThread extends Thread  {
             TextPrinter = new PrintStream(out, false, "8859_1");
             // Read and parse request
             req= GetRequest(TextReader); //reads the input http request if everything was read ok it returns true
+            if (req == null)
+                throw new IOException("Error reading request");
             //Create response object. 
-            res= new Response(HTTPServer.ServerName);
+            res= new Response(HTTPServer.ServerName, out);
 
             // See if the connection is non-SSL
             if (ServerSock.getLocalPort() == HTTPServer.getPortHTTP()) {
                 // Set error code
-                res.setError(307, req.version);
+                res.setError(ReplyCode.TMPREDIRECT, req.version);
                 // Set a Location header with the correct URL
                 res.setHeader("Location", "https://" + InetAddress.getLocalHost().getHostAddress() 
                 + ":" + Integer.toString(HTTPServer.getPortHTTPS()) + req.urlText);
@@ -145,14 +152,20 @@ public class ConnectionThread extends Thread  {
                 controller.handleRequest(req, res);
                 // Send response
                 res.send_Answer(TextPrinter);
-                // If the header Connection: keep-alive was sent
-                //int counter = 0;
-                client.setSoTimeout(ReplyCode.TMPREDIRECT);
+                // Set timeout
+                if (req.getHeaderValue("Accept").contentEquals("text/event-stream") ) {
+                    client.setSoTimeout(0);
+                    String message = "data: Connection Established!\n\n";
+                    out.write(message.getBytes());
+                    out.flush();
+                }
+                else
+                    client.setSoTimeout(60);
                 while (req.getHeaderValue("Connection").contentEquals("keep-alive")) {
                     req= GetRequest(TextReader);
                     if (req == null)
                         break;
-                    res= new Response(HTTPServer.ServerName);
+                    res= new Response(HTTPServer.ServerName, out);
                     controller.handleRequest(req, res);
                     res.send_Answer(TextPrinter);
                 }
@@ -162,10 +175,7 @@ public class ConnectionThread extends Thread  {
                 logger.info("Read timed out.");
         }
         catch (Exception e) {
-            logger.error("Error processing request", e);
-            if (res != null) {
-                res.setError(ReplyCode.BADREQ, req != null ? req.version : "HTTP/1.1");
-            }
+            logger.info("IO error probably caused by extra thread creation");
         } finally {
             cleanup(TextPrinter);
         }

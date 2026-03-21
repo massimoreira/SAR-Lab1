@@ -77,6 +77,7 @@ public class ApiHandler extends AbstractRequestHandler {
             groupService.saveGroup(groupNumber, numbers, names, counter);
             response.setCode(ReplyCode.OK);
             response.setHeader("Content-Type", "application/json");
+            response.setHeader("Content-Type", "application/json");
             response.setText("{\"message\":\"Sucess!\"}");
             response.setHeader("Content-Length", Integer.toString(response.text.length()));
 
@@ -92,22 +93,36 @@ public class ApiHandler extends AbstractRequestHandler {
         //response.setText("{\"message\":\"Students implement POST\"}");
     }
 
+    /**
+     * Handles DELETE /api - Delete a group.
+     * 
+     * Information comes on url after '?'
+     * 
+     * Response should be JSON indicating success or failure.
+     * Appropriate HTTP headers must be set.
+     */
     @Override
     protected void handleDelete(Request request, Response response) {
         request.readDeleteParameters();
         String groupNumber = request.getDeleteParameter("groupNumber");
-        try {
-            groupService.deleteGroup(groupNumber);
-            response.setCode(ReplyCode.OK);
-            response.setHeader("Content-Type", "application/json");
-            response.setText("{\"message\":\"Sucess!\"}");
-            response.setHeader("Content-Length", Integer.toString(response.text.length()));
-
-            if (request.getHeaderValue("Connection").contentEquals("keep-alive"))
-                response.setHeader("Connection", "keep-alive");
+        if (!groupService.groupExists(groupNumber)) {
+            response.setError(ReplyCode.NOTFOUND, request.version);
         }
-        catch (Exception e){
-            logger.error(e.toString());
+        else {
+            try {
+                groupService.deleteGroup(groupNumber);
+                response.setCode(ReplyCode.OK);
+                response.setHeader("Content-Type", "application/json");
+                response.setText("{\"message\":\"Sucess!\"}");
+                response.setHeader("Content-Length", Integer.toString(response.text.length()));
+
+                if (request.getHeaderValue("Connection").contentEquals("keep-alive"))
+                    response.setHeader("Connection", "keep-alive");
+            }
+            catch (Exception e){
+                response.setError(ReplyCode.BADREQ, request.version);
+                logger.error(e.toString());
+            }
         }
     }
 }

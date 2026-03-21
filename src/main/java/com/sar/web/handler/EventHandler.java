@@ -1,9 +1,13 @@
 package com.sar.web.handler;
 
+import com.sar.server.Main;
 import com.sar.service.EventBroadcaster;
 import com.sar.web.http.ReplyCode;
 import com.sar.web.http.Request;
 import com.sar.web.http.Response;
+
+import java.io.IOException;
+import java.io.OutputStream;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -70,8 +74,16 @@ public class EventHandler extends AbstractRequestHandler {
      * 4. Handle cleanup when client disconnects
      */
     @Override
-    protected void handleGet(Request request, Response response) {
-        // Implementation needed
+    protected void handleGet(Request request, Response response){
+        response.setHeader("Content-Type", "text/event-stream");
+        response.setHeader("Cache-Control", "no-cache");
+        response.setHeader("Connection", "keep-alive");
+        response.setCode(ReplyCode.OK);
+        //response.setHeader("Content-Length", "0");
+
+        OutputStream outputStream = response.getOutputStream();
+
+        eventBroadcaster.registerClient(outputStream);
     }
 
     /**
@@ -80,13 +92,13 @@ public class EventHandler extends AbstractRequestHandler {
      */
     @Override
     protected void handlePost(Request request, Response response) {
-        // Implementation needed (usually returns an error)
+        logger.error("EventHandler does not handle POST requests.");
+        response.setError(ReplyCode.BADREQ, request.version);
     }
 
     @Override
     protected void handleDelete(Request request, Response response) {
-        // Static files don't handle POST requests
         logger.error("EventHandler does not handle DELETE requests.");
-        response.setError(ReplyCode.NOTIMPLEMENTED, request.version);
+        response.setError(ReplyCode.BADREQ, request.version);
     }
 }
